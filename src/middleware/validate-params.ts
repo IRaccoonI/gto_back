@@ -1,6 +1,7 @@
-import { Context } from 'koa';
-import { logger } from '../services/logger';
-import R from 'ramda';
+import { Context } from "koa";
+import R from "ramda";
+import { isNotEmptyObject, trusty } from "../lib/fp";
+import { logger } from "../services/logger";
 
 export interface Validator<T> {
   (val: T): boolean;
@@ -22,34 +23,56 @@ interface Container<T> {
  * parameters in question. If this is omitted, a simple presence check will
  * be performed.
  */
-export const validateParams = <T>(
-  containerPath: string[],
-  params: string[],
-  validator?: Validator<T>
-) => async (ctx: Context, next: Function) => {
-  const container: Container<T> = R.path(containerPath, ctx);
+export const validateParams =
+  <T>(containerPath: string[], params: string[], validator?: Validator<T>) =>
+  async (ctx: Context, next: Function) => {
+    const container: Container<T> = R.path(containerPath, ctx);
 
-  if (!container) {
-    logger.warn('Invalid param container %j: %j', container, {
-      requestId: ctx.requestId
-    });
-    ctx.throw(400, 'Bad request');
-  }
+    if (!container) {
+      logger.warn("Invalid param container %j: %j", container, {
+        requestId: ctx.requestId,
+      });
+      ctx.throw(400, "Bad request");
+    }
 
-  R.forEach(assertValid(ctx, container, validator), params);
-  await next();
-};
+    const validated = R.map(assertValid(container, validator), params);
+    console.log(validated.filter(trusty));
 
-const assertValid = <T>(
-  ctx: Context,
-  container: Container<T>,
-  validator?: Validator<T>
-) => (param: string) => {
-  if (!container[param]) {
-    ctx.throw(400, `${param} is required.`);
-  }
+    // if (!validated.every(isNotEmptyObject)) {
+    if (validated.filter(trusty).length) {
+      const required = validated
+        .map((val) => val?.requiredError)
+        .filter(trusty);
+      const invalided = validated
+        .map((val) => val?.invalidError)
+        .filter(trusty);
 
-  if (validator && !validator(container[param])) {
-    ctx.throw(400, `${param} is invalid.`);
-  }
-};
+      const requiredMessage = `${required.join(", ")} is required.${
+        invalided.length ? "" : " "
+      }`;
+      const invalidedMessage = `${invalided.join(", ")} is invalid.`;
+
+      ctx.throw(
+        400,
+        (required.length ? requiredMessage : "") +
+          (invalided.length ? invalidedMessage : "")
+      );
+    }
+
+    await next();
+  };
+
+const assertValid =
+  <T>(container: Container<T>, validator?: Validator<T>) =>
+  (param: string): { requiredError?: string; invalidError?: string } | null => {
+    const result: { requiredError?: string; invalidError?: string } = {};
+    if (!container[param]) {
+      result.requiredError = param;
+    }
+
+    if (validator && !validator(container[param])) {
+      result.invalidError = param;
+    }
+
+    return isNotEmptyObject(result) ? result : null;
+  };

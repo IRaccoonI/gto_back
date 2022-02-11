@@ -1,7 +1,7 @@
-import { Context } from 'koa';
+import { Context } from "koa";
 
 export async function demo(ctx: Context) {
-  ctx.body = 'It works!';
+  ctx.body = "It works!";
 }
 
 /**
@@ -9,7 +9,7 @@ export async function demo(ctx: Context) {
  */
 export async function error(ctx: Context) {
   ctx.status = 500;
-  ctx.message = 'App Error (this is intentional)!';
+  ctx.message = "App Error (this is intentional)!";
 }
 
 /**
@@ -17,6 +17,6 @@ export async function error(ctx: Context) {
  */
 export async function errorWithoutMessage() {
   // eslint-disable-next-line no-console
-  console.log('About to throw an error deliberately, ignore it.');
-  throw new Error('');
+  console.log("About to throw an error deliberately, ignore it.");
+  throw new Error("");
 }

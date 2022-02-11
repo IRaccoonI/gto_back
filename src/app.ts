@@ -1,45 +1,43 @@
-import { JWT_SECRET } from './../env/local';
-import Koa from 'koa';
-import koaRouter from 'koa-router';
-import bodyParser from 'koa-body';
-import helmet from 'koa-helmet';
-import jwt from 'koa-jwt';
-import { logger } from './services/logger';
-import { generateRequestId } from './middleware/request-id-generator';
-import { errorResponder } from './middleware/error-responder';
-import { k } from './project-env';
-import { rootRouter } from './routes/root.routes';
-import { healthCheckRouter } from './routes/health-check/health-check.routes';
-import { demoRouter } from './routes/demo/demo.routes';
+import { JWT_SECRET } from "./../env/local";
+import Koa from "koa";
+import koaRouter from "koa-router";
+import bodyParser from "koa-body";
+import helmet from "koa-helmet";
+import jwt from "koa-jwt";
+import { logger } from "./services/logger";
+import { generateRequestId } from "./middleware/request-id-generator";
+import { errorResponder } from "./middleware/error-responder";
+import { k } from "./project-env";
+import { rootRouter } from "./routes/root.routes";
+import { apiRouter } from "./routes/api/api.routes";
 
 export const app = new Koa();
 
 // Entry point for all modules.
 const api = new koaRouter()
-  .use('/', rootRouter.routes())
-  .use('/health', healthCheckRouter.routes())
-  .use('/demo', demoRouter.routes());
+  .use("/", rootRouter.routes())
+  .use("/api", apiRouter.routes());
 
 /* istanbul ignore if */
 if (k.REQUEST_LOGS) {
-  const morgan = require('koa-morgan');
+  const morgan = require("koa-morgan");
   const format =
-    '[RQID=:request-id] - :remote-user' +
+    "[RQID=:request-id] - :remote-user" +
     ' [:date[clf]] ":method :url HTTP/:http-version" ' +
     ':status :res[content-length] ":referrer" ":user-agent"';
-  morgan.token('request-id', (req: Koa.IncomingMessage) => req.requestId);
+  morgan.token("request-id", (req: Koa.IncomingMessage) => req.requestId);
   app.use(morgan(format));
 }
 
 const USE_COOKIE = false;
-const APP_COOKIE = 'JWT_COOKIE';
+const APP_COOKIE = "JWT_COOKIE";
 
 app
   .use(helmet())
   .use(
     jwt({
       secret: k.JWT_SECRET,
-      passthrough: true
+      passthrough: true,
     })
   )
   .use(bodyParser())
@@ -56,8 +54,8 @@ function startFunction() {
 
 /* istanbul ignore if */
 if (require.main === module) {
-  if (process.env.PROJECT_ENV === 'staging') {
-    const throng = require('throng');
+  if (process.env.PROJECT_ENV === "staging") {
+    const throng = require("throng");
     throng(startFunction);
   } else {
     startFunction();
