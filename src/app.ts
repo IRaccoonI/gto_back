@@ -5,11 +5,13 @@ import bodyParser from "koa-body";
 import helmet from "koa-helmet";
 import jwt from "koa-jwt";
 import { logger } from "./services/logger";
-import { generateRequestId } from "./middleware/request-id-generator";
 import { errorResponder } from "./middleware/error-responder";
 import { k } from "./project-env";
 import { rootRouter } from "./routes/root.routes";
 import { apiRouter } from "./routes/api/api.routes";
+import koaBody from "koa-body";
+import koaStatic from "koa-static";
+import path from "path";
 
 export const app = new Koa();
 
@@ -17,35 +19,16 @@ export const app = new Koa();
 const api = new koaRouter()
   .use("/", rootRouter.routes())
   .use("/api", apiRouter.routes());
+// koa-body Intermediate Plug-in File Submission and form-data
 
-/* istanbul ignore if */
-if (k.REQUEST_LOGS) {
-  const morgan = require("koa-morgan");
-  const format =
-    "[RQID=:request-id] - :remote-user" +
-    ' [:date[clf]] ":method :url HTTP/:http-version" ' +
-    ':status :res[content-length] ":referrer" ":user-agent"';
-  morgan.token("request-id", (req: Koa.IncomingMessage) => req.requestId);
-  app.use(morgan(format));
-}
+// Configuring Static Resource Loading Middleware
+// app.use(
+//   koaStatic(
+//     path.join("out") //Read static file directories
+//   )
+// );
 
-const USE_COOKIE = false;
-const APP_COOKIE = "JWT_COOKIE";
-
-app
-  .use(helmet())
-  .use(
-    jwt({
-      secret: k.JWT_SECRET,
-      passthrough: true,
-    })
-  )
-  .use(bodyParser())
-  .use(generateRequestId)
-  .use(errorResponder)
-  .use(api.routes())
-  .use(api.allowedMethods());
-
+app.use(api.routes()).use(api.allowedMethods());
 function startFunction() {
   const PORT = process.env.PORT || 3000;
   logger.info(`Starting server on http://localhost:${PORT}`);

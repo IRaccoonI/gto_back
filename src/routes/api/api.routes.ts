@@ -1,12 +1,20 @@
 import koaRouter from "koa-router";
-import { demo } from "./api.controller";
-import { validateParams } from "../../middleware/validate-params";
+import { uploadGto } from "./api.controller";
+import koaBody from "koa-body";
 
 /**
  * A simple module to demonstrate declarative parameter validation.
  */
 export const apiRouter = new koaRouter().post(
-  "/foo-is-required",
-  validateParams<string>(["query"], ["foo"]),
-  demo
+  "/uploadGto",
+  koaBody({
+    formLimit: "1mb",
+    multipart: true, // Allow multiple files to be uploaded
+    formidable: {
+      maxFileSize: 200 * 1024 * 1024, //Upload file size
+      keepExtensions: true, //  Extensions to save images
+      uploadDir: "uploads",
+    },
+  }),
+  uploadGto
 );
